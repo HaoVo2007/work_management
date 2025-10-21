@@ -9,8 +9,9 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	httpserver "work-management/internal/app/http"
 	"work-management/configs"
+	httpserver "work-management/internal/app/http"
+	"work-management/internal/pkg/aws"
 	"work-management/internal/repository"
 
 	"github.com/gin-gonic/gin"
@@ -20,13 +21,15 @@ import (
 func main() {
 
 	if err := godotenv.Load(); err != nil {
-		log.Printf("⚠️ Error loading .env file: %v", err)
+		log.Printf("Error loading .env file: %v", err)
 	}
 
 	cfg, err := configs.LoadConfig()
 	if err != nil {
 		log.Fatal("Cannot load config:", err)
 	}
+
+	aws.InitS3()
 
 	mongoClient, err := repository.NewMongoClient(cfg)
 	if err != nil {
