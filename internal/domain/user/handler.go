@@ -1,10 +1,9 @@
 package user
 
 import (
-	"context"
 	"fmt"
-	"time"
-	"work-management/internal/pkg/aws"
+	"work-management/internal/app/http/middleware"
+	"work-management/internal/domain/user/dto/request"
 	"work-management/internal/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -20,46 +19,87 @@ func NewHandler(r *gin.Engine, service Service) {
 		service: service,
 	}
 
-	group := r.Group("api/v1")
+	api := r.Group("api/v1")
 	{
-		group.GET("/users", handler.GetUser)
+		public := api.Group("/users")
+		{
+			public.POST("", handler.CreateUser)
+			public.POST("/login", handler.LoginUser)
+		}
 
-		group.POST("/users/upload", handler.UploadUsers)
+		auth := api.Group("users")
+		auth.Use(middleware.JWTAuthMiddleware())
+		{
+			auth.POST("/logout", handler.LogoutUser)
+		}
+
+		admin := api.Group("/admin")
+		admin.Use(middleware.JWTAuthMiddleware(), middleware.IsAdminMiddleware())
+		{
+			
+		}
 	}
 
 }
 
-func (h *Handler) GetUser(c *gin.Context) {
+func (h *Handler) CreateUser(c *gin.Context) {
 
-	key := c.Query("key")
+	var req request.CreateUserRequest
 
-	if key == "" {
-		response.BadRequest(c, fmt.Errorf("missing key"))
-		return
-	}
-
-	url, err := aws.GetPresignedURL(context.Background(), key, 15*time.Minute)
-	if err != nil {
-		response.InternalError(c, err)
-		return
-	}
-
-	response.Success(c, "Avatar URL", url)
-}
-
-func (h *Handler) UploadUsers(c *gin.Context) {
-
-	file, err := c.FormFile("avatar")
-	if err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, err)
 		return
 	}
 
-	key, err := aws.UploadPrivateFile(context.Background(), file, "avatars")
+	user, err := h.service.CreateUser(c, req)
 	if err != nil {
 		response.InternalError(c, err)
 		return
 	}
 
-	response.Created(c, "Avatar uploaded successfully", gin.H{"key": key})
+	response.Created(c, "User created successfully", user)
+
+}
+
+func (h *Handler) LoginUser(c *gin.Context) {
+
+	var req request.LoginUserRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err)
+		return
+	}
+
+	token, err := h.service.LoginUser(c, req)
+	if err != nil {
+		response.InternalError(c, err)
+		return
+	}
+
+	response.Created(c, "User logged in successfully", token)
+
+}
+
+func (h *Handler) LogoutUser(c *gin.Context) {
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, fmt.Errorf("missing user_id in token"))
+		return
+	}
+
+	token := c.GetHeader("Authorization")
+	if token == "" {
+		response.Unauthorized(c, fmt.Errorf("missing token"))
+		return
+	}
+
+	err := h.service.LogoutUser(c, userID.(string))
+	if err != nil {
+		response.InternalError(c, err)
+		return
+	}
+
+	response.Success(c, "User logged out successfully", nil)
+
 }
