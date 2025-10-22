@@ -23,7 +23,7 @@ func NewHandler(r *gin.Engine, service Service) {
 	{
 		public := api.Group("/users")
 		{
-			public.POST("", handler.CreateUser)
+			public.POST("/register", handler.CreateUser)
 			public.POST("/login", handler.LoginUser)
 		}
 

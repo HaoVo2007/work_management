@@ -11,6 +11,7 @@ import (
 	"time"
 	"work-management/configs"
 	httpserver "work-management/internal/app/http"
+	"work-management/internal/app/http/middleware"
 	"work-management/internal/pkg/aws"
 	"work-management/internal/repository"
 
@@ -42,7 +43,8 @@ func main() {
 	}()
 
 	r := gin.Default()
-
+	r.Use(middleware.CORSMiddleware())
+	
 	httpserver.RegisterRoutes(r, mongoClient, cfg)
 
 	srv := &http.Server{
