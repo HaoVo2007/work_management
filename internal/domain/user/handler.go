@@ -1,9 +1,11 @@
 package user
 
 import (
+	"context"
 	"fmt"
 	"work-management/internal/app/http/middleware"
 	"work-management/internal/domain/user/dto/request"
+	"work-management/internal/pkg/constants"
 	"work-management/internal/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -23,7 +25,7 @@ func NewHandler(r *gin.Engine, service Service) {
 	{
 		public := api.Group("/users")
 		{
-			public.POST("/register", handler.CreateUser)
+			public.POST("/register", handler.RegisterUser)
 			public.POST("/login", handler.LoginUser)
 		}
 
@@ -31,6 +33,7 @@ func NewHandler(r *gin.Engine, service Service) {
 		auth.Use(middleware.JWTAuthMiddleware())
 		{
 			auth.POST("/logout", handler.LogoutUser)
+			auth.POST("/upload/avatar", handler.UploadAvatar)
 		}
 
 		admin := api.Group("/admin")
@@ -42,7 +45,7 @@ func NewHandler(r *gin.Engine, service Service) {
 
 }
 
-func (h *Handler) CreateUser(c *gin.Context) {
+func (h *Handler) RegisterUser(c *gin.Context) {
 
 	var req request.CreateUserRequest
 
@@ -51,7 +54,7 @@ func (h *Handler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.CreateUser(c, req)
+	user, err := h.service.RegisterUser(c, req)
 	if err != nil {
 		response.InternalError(c, err)
 		return
@@ -82,7 +85,7 @@ func (h *Handler) LoginUser(c *gin.Context) {
 
 func (h *Handler) LogoutUser(c *gin.Context) {
 
-	userID, exists := c.Get("user_id")
+	userID, exists := c.Get(constants.UserID)
 	if !exists {
 		response.Unauthorized(c, fmt.Errorf("missing user_id in token"))
 		return
@@ -101,5 +104,37 @@ func (h *Handler) LogoutUser(c *gin.Context) {
 	}
 
 	response.Success(c, "User logged out successfully", nil)
+
+}
+
+func (h *Handler) UploadAvatar(c *gin.Context) {
+
+	userID, exists := c.Get(constants.UserID)
+	if !exists {
+		response.Unauthorized(c, fmt.Errorf("missing user_id in token"))
+		return
+	}
+
+	token := c.GetHeader("Authorization")
+	if token == "" {
+		response.Unauthorized(c, fmt.Errorf("missing token"))
+		return
+	}
+
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		response.BadRequest(c, err)
+		return
+	}
+
+	ctx := context.WithValue(c, constants.TokenKey, token)
+
+	avatar, err := h.service.UploadAvatar(ctx, userID.(string), file)
+	if err != nil {
+		response.InternalError(c, err)
+		return
+	}
+
+	response.Success(c, "Avatar uploaded successfully", avatar)
 
 }

@@ -13,6 +13,7 @@ type Repository interface {
 	Create(ctx context.Context, user *model.User) error
 	UpdateByID(ctx context.Context, userID primitive.ObjectID, updateFields bson.M) error
 	FindByEmail(ctx context.Context, email string) (*model.User, error)
+	FindByID(ctx context.Context, userID primitive.ObjectID) (*model.User, error)	
 }
 
 type repository struct {
@@ -49,4 +50,22 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*model.User
 
 	return &user, nil
 
+}
+
+func (r *repository) FindByID(ctx context.Context, userID primitive.ObjectID) (*model.User, error)	{
+
+	var user model.User
+
+	filter := bson.M{"_id": userID}
+
+	err := r.collection.FindOne(ctx, filter).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &user, nil
+	
 }

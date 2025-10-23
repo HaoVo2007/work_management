@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"mime/multipart"
 	"os"
 	"time"
 	"work-management/internal/domain/user/dto/request"
 	"work-management/internal/domain/user/dto/response"
 	"work-management/internal/domain/user/model"
+	"work-management/internal/pkg/aws"
 
 	"github.com/golang-jwt/jwt/v4"
 	"go.mongodb.org/mongo-driver/bson"
@@ -17,9 +19,10 @@ import (
 )
 
 type Service interface {
-	CreateUser(ctx context.Context, req request.CreateUserRequest) (*response.CreateUserResponse, error)
+	RegisterUser(ctx context.Context, req request.CreateUserRequest) (*response.CreateUserResponse, error)
 	LoginUser(ctx context.Context, req request.LoginUserRequest) (string, error)
 	LogoutUser(ctx context.Context, userID string) error
+	UploadAvatar(ctx context.Context, userID string, avatar *multipart.FileHeader) (string, error)
 }
 
 type service struct {
@@ -32,7 +35,7 @@ func NewService(repository Repository) Service {
 	}
 }
 
-func (s *service) CreateUser(ctx context.Context, req request.CreateUserRequest) (*response.CreateUserResponse, error) {
+func (s *service) RegisterUser(ctx context.Context, req request.CreateUserRequest) (*response.CreateUserResponse, error) {
 
 	if req.Name == "" {
 		return nil, fmt.Errorf("name is required")
@@ -144,6 +147,61 @@ func (s *service) LogoutUser(ctx context.Context, userID string) error {
 	}
 
 	return nil
+
+}
+
+func (s *service) UploadAvatar(ctx context.Context, userID string, avatar *multipart.FileHeader) (string, error) {
+	
+	if userID == "" {
+		return "", fmt.Errorf("user_id is required")
+	}
+
+	if avatar == nil {
+		return "", fmt.Errorf("avatar is required")
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return "", err
+	}
+
+	user, err := s.repository.FindByID(ctx, objectID)
+	if err != nil {
+		return "", err
+	}
+
+	if user == nil {
+		return "", fmt.Errorf("user not found")
+	}
+
+	if user.Avatar != nil {
+		err = aws.DeleteFile(ctx, *user.Avatar)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	key, err := aws.UploadPrivateFile(ctx, avatar, "avatars")
+	if err != nil {
+		return "", err
+	}
+	
+	uploadFields := bson.M{
+		"avatar":        key,
+		"updated_at":    time.Now(),
+	}
+
+	err = s.repository.UpdateByID(ctx, objectID, uploadFields)
+	if err != nil {
+		return "", fmt.Errorf("failed to update user avatar: %w", err)
+	}
+
+	avatarUrl, err := aws.GetPresignedURL(ctx, key, time.Hour)
+	if err != nil {
+		return "", err
+	}
+
+	return *avatarUrl, nil
 
 }
 
