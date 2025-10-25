@@ -113,9 +113,11 @@ func (s *service) LoginUser(ctx context.Context, req request.LoginUserRequest) (
 		return "", fmt.Errorf("invalid email or password")
 	}
 
+	token, refreshToken := s.generateToken(user.ID.Hex(), user.Name, user.Role)
+
 	updateFileds := bson.M{
-		"token":         user.Token,
-		"refresh_token": user.RefreshToken,
+		"token":         token,
+		"refresh_token": refreshToken,
 		"updated_at":    time.Now(),
 	}
 
@@ -124,7 +126,7 @@ func (s *service) LoginUser(ctx context.Context, req request.LoginUserRequest) (
 		return "", fmt.Errorf("failed to update user tokens: %w", err)
 	}
 
-	return user.Token, nil
+	return token, nil
 
 }
 
