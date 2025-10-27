@@ -2,7 +2,6 @@ package board
 
 import (
 	"context"
-	"fmt"
 	"work-management/internal/domain/board/model"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -50,7 +49,7 @@ func (r *boardRepository) GetAll(ctx context.Context) ([]*model.Board, error) {
 }
 
 func (r *boardRepository) GetBoardById(ctx context.Context, boardID primitive.ObjectID) (*model.Board, error) {
-	
+
 	var board model.Board
 
 	filter := bson.M{"_id": boardID}
