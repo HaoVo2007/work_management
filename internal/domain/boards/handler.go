@@ -1,10 +1,10 @@
-package board
+package boards
 
 import (
 	"context"
 	"fmt"
 	"work-management/internal/app/http/middleware"
-	"work-management/internal/domain/board/dto/request"
+	"work-management/internal/domain/boards/dto/request"
 	"work-management/internal/pkg/constants"
 	"work-management/internal/pkg/response"
 
@@ -29,8 +29,8 @@ func NewBoardHandler(r *gin.Engine, boardService BoardService) {
 			public.POST("", handler.CreateBoard)
 			public.GET("", handler.GetAllBoards)
 			public.GET("/:id", handler.GetBoardById)
-			// public.PUT("/:id", handler.UpdateBoard)
-			// public.DELETE("/:id", handler.DeleteBoard)
+			public.PUT("/:id", handler.UpdateBoard)
+			public.DELETE("/:id", handler.DeleteBoard)
 			public.GET("/user", handler.GetBoardsByUserID)
 		}
 	}
@@ -109,6 +109,76 @@ func (h *BoardHandler) GetBoardById(c *gin.Context) {
 
 }
 
+func (h *BoardHandler) UpdateBoard(c *gin.Context) {
+
+	token := c.GetHeader("Authorization")
+	if token == "" {
+		response.Unauthorized(c, fmt.Errorf("missing token"))
+		return
+	}
+
+	ctx := context.WithValue(c, constants.TokenKey, token)
+
+	boardID := c.Param("id")
+	if boardID == "" {
+		response.BadRequest(c, fmt.Errorf("missing board_id"))
+		return
+	}
+
+	var req request.UpdateBoardRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err)
+		return
+	}
+
+	userID, exists := c.Get(constants.UserID)
+	if !exists {
+		response.Unauthorized(c, fmt.Errorf("missing user_id in token"))
+		return
+	}
+
+	board, err := h.BoardService.UpdateBoard(ctx, boardID, &req, userID.(string))
+	if err != nil {
+		response.InternalError(c, err)
+		return
+	}
+
+	response.Success(c, "Board updated successfully", board)
+
+}
+
+func (h *BoardHandler) DeleteBoard(c *gin.Context) {
+
+	token := c.GetHeader("Authorization")
+	if token == "" {
+		response.Unauthorized(c, fmt.Errorf("missing token"))
+		return
+	}
+
+	ctx := context.WithValue(c, constants.TokenKey, token)
+
+	boardID := c.Param("id")
+	if boardID == "" {
+		response.BadRequest(c, fmt.Errorf("missing board_id"))
+		return
+	}
+
+	userID, exists := c.Get(constants.UserID)
+	if !exists {
+		response.Unauthorized(c, fmt.Errorf("missing user_id in token"))
+		return
+	}
+
+	err := h.BoardService.DeleteBoard(ctx, boardID, userID.(string))
+	if err != nil {
+		response.InternalError(c, err)
+		return
+	}
+
+	response.Success(c, "Board deleted successfully", nil)
+
+}
+
 func (h *BoardHandler) GetBoardsByUserID(c *gin.Context) {
 
 	userID, exists := c.Get(constants.UserID)
@@ -132,5 +202,5 @@ func (h *BoardHandler) GetBoardsByUserID(c *gin.Context) {
 	}
 
 	response.Success(c, "Boards retrieved successfully", boards)
-	
+
 }

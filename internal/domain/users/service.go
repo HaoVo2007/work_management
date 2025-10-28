@@ -1,4 +1,4 @@
-package user
+package users
 
 import (
 	"context"
@@ -7,9 +7,9 @@ import (
 	"mime/multipart"
 	"os"
 	"time"
-	"work-management/internal/domain/user/dto/request"
-	"work-management/internal/domain/user/dto/response"
-	"work-management/internal/domain/user/model"
+	"work-management/internal/domain/users/dto/request"
+	"work-management/internal/domain/users/dto/response"
+	"work-management/internal/domain/users/model"
 	"work-management/internal/pkg/aws"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -62,7 +62,7 @@ func (s *service) RegisterUser(ctx context.Context, req request.CreateUserReques
 	newUserID := primitive.NewObjectID()
 	token, refreshToken := s.generateToken(newUserID.Hex(), req.Name, "user")
 	inviteLink := fmt.Sprintf("INVITE_LINK/%s", newUserID.Hex())
-	userData := &model.User{
+	userData := &model.Users{
 		ID:           newUserID,
 		Name:         req.Name,
 		Email:        req.Email,

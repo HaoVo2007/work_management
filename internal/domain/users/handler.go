@@ -1,10 +1,10 @@
-package user
+package users
 
 import (
 	"context"
 	"fmt"
 	"work-management/internal/app/http/middleware"
-	"work-management/internal/domain/user/dto/request"
+	"work-management/internal/domain/users/dto/request"
 	"work-management/internal/pkg/constants"
 	"work-management/internal/pkg/response"
 

@@ -2,8 +2,9 @@ package http
 
 import (
 	"work-management/configs"
-	"work-management/internal/domain/board"
-	"work-management/internal/domain/user"
+	"work-management/internal/domain/boards"
+	"work-management/internal/domain/columns"
+	"work-management/internal/domain/users"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -12,13 +13,19 @@ import (
 func RegisterRoutes(r *gin.Engine, db *mongo.Client, cfg *configs.Config) {
 
 	userCollection := db.Database(cfg.MongoDB).Collection("users")
-	userRepo := user.NewRepository(userCollection)
-	userService := user.NewService(userRepo)
-	user.NewHandler(r, userService)
-
 	boardCollection := db.Database(cfg.MongoDB).Collection("boards")
-	boardRepo := board.NewBoardRepository(boardCollection)
-	boardService := board.NewBoardService(boardRepo)
-	board.NewBoardHandler(r, boardService)
+	columnCollection := db.Database(cfg.MongoDB).Collection("columns")
+
+	userRepo := users.NewRepository(userCollection)
+	columnRepo := columns.NewColumnRepository(columnCollection)
+	boardRepo := boards.NewBoardRepository(boardCollection)
+
+	userService := users.NewService(userRepo)
+	boardService := boards.NewBoardService(boardRepo, columnRepo, userRepo)
+	columnService := columns.NewColumnService(columnRepo, boardRepo)
+
+	users.NewHandler(r, userService)
+	boards.NewBoardHandler(r, boardService)
+	columns.NewColumnHandler(r, columnService)
 
 }

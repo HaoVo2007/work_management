@@ -1,8 +1,8 @@
-package user
+package users
 
 import (
 	"context"
-	"work-management/internal/domain/user/model"
+	"work-management/internal/domain/users/model"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -10,10 +10,10 @@ import (
 )
 
 type Repository interface {
-	Create(ctx context.Context, user *model.User) error
+	Create(ctx context.Context, user *model.Users) error
 	UpdateByID(ctx context.Context, userID primitive.ObjectID, updateFields bson.M) error
-	FindByEmail(ctx context.Context, email string) (*model.User, error)
-	FindByID(ctx context.Context, userID primitive.ObjectID) (*model.User, error)	
+	FindByEmail(ctx context.Context, email string) (*model.Users, error)
+	FindByID(ctx context.Context, userID primitive.ObjectID) (*model.Users, error)	
 }
 
 type repository struct {
@@ -24,7 +24,7 @@ func NewRepository(collection *mongo.Collection) Repository {
 	return &repository{collection: collection}
 }
 
-func (r *repository) Create(ctx context.Context, user *model.User) error {
+func (r *repository) Create(ctx context.Context, user *model.Users) error {
 	_, err := r.collection.InsertOne(ctx, user)
 	return err
 }
@@ -34,9 +34,9 @@ func (r *repository) UpdateByID(ctx context.Context, userID primitive.ObjectID, 
 	return err
 }
 
-func (r *repository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
+func (r *repository) FindByEmail(ctx context.Context, email string) (*model.Users, error) {
 
-	var user model.User
+	var user model.Users
 
 	filter := bson.M{"email": email}
 
@@ -52,9 +52,9 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*model.User
 
 }
 
-func (r *repository) FindByID(ctx context.Context, userID primitive.ObjectID) (*model.User, error)	{
+func (r *repository) FindByID(ctx context.Context, userID primitive.ObjectID) (*model.Users, error)	{
 
-	var user model.User
+	var user model.Users
 
 	filter := bson.M{"_id": userID}
 
