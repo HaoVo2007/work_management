@@ -58,6 +58,7 @@ func (s *boardService) CreateBoard(ctx context.Context, req *request.CreateBoard
 		Name:       req.Name,
 		Background: req.Background,
 		Color:      req.Color,
+		Icon:       req.Icon,
 		Members:    []string{userID},
 		CreatedBy:  userID,
 		CreatedAt:  time.Now(),

@@ -8,19 +8,19 @@ import (
 )
 
 func ToBoardResponse(
-	board *model.Boards, 
-	user *userDTO.UserResponse, 
-	columns []*columnDTO.ColumnResponse, 
-	members []*userDTO.UserResponse, 
+	board *model.Boards,
+	user *userDTO.UserResponse,
+	columns []*columnDTO.ColumnResponse,
+	members []*userDTO.UserResponse,
 ) *boardDTO.BoardResponse {
 	return &boardDTO.BoardResponse{
 		ID:         board.ID.Hex(),
 		Name:       board.Name,
 		Background: *board.Background,
 		Color:      *board.Color,
-		Members:    append([]*userDTO.UserResponse{}, members...),     
-		Columns:    append([]*columnDTO.ColumnResponse{}, columns...), 
+		Icon:       *board.Icon,
+		Members:    append([]*userDTO.UserResponse{}, members...),
+		Columns:    append([]*columnDTO.ColumnResponse{}, columns...),
 		CreatedBy:  *user,
 	}
 }
-

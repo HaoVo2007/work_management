@@ -2,6 +2,7 @@ package columns
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"work-management/internal/app/http/middleware"
 	"work-management/internal/domain/columns/dto/request"
@@ -42,7 +43,7 @@ func (h *ColumnHandler) CreateColumn(c *gin.Context) {
 		response.BadRequest(c, err)
 		return
 	}
-
+	
 	token := c.GetHeader("Authorization")
 	if token == "" {
 		response.Unauthorized(c, fmt.Errorf("missing token"))
@@ -59,6 +60,10 @@ func (h *ColumnHandler) CreateColumn(c *gin.Context) {
 
 	column, err := h.ColumnService.CreateColumn(ctx, &req, userID.(string))
 	if err != nil {
+		if errors.Is(err, ErrPermissionDenied) {
+			response.Forbidden(c, err)
+			return
+		}
 		response.InternalError(c, err)
 		return
 	}
@@ -97,6 +102,10 @@ func (h *ColumnHandler) UpdateColumn(c *gin.Context) {
 
 	column, err := h.ColumnService.UpdateColumn(ctx, columnID, &req, userID.(string))
 	if err != nil {
+		if errors.Is(err, ErrPermissionDenied) {
+			response.Forbidden(c, err)
+			return
+		}
 		response.InternalError(c, err)
 		return
 	}
@@ -129,6 +138,10 @@ func (h *ColumnHandler) DeleteColumn(c *gin.Context) {
 
 	err := h.ColumnService.DeleteColumn(ctx, columnID, userID.(string))
 	if err != nil {
+		if errors.Is(err, ErrPermissionDenied) {
+			response.Forbidden(c, err)
+			return
+		}
 		response.InternalError(c, err)
 		return
 	}

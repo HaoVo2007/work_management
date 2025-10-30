@@ -2,6 +2,7 @@ package boards
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"work-management/internal/app/http/middleware"
 	"work-management/internal/domain/boards/dto/request"
@@ -139,6 +140,10 @@ func (h *BoardHandler) UpdateBoard(c *gin.Context) {
 
 	board, err := h.BoardService.UpdateBoard(ctx, boardID, &req, userID.(string))
 	if err != nil {
+		if errors.Is(err, ErrPermissionDenied) {
+			response.Forbidden(c, err)
+			return
+		}
 		response.InternalError(c, err)
 		return
 	}
@@ -171,6 +176,10 @@ func (h *BoardHandler) DeleteBoard(c *gin.Context) {
 
 	err := h.BoardService.DeleteBoard(ctx, boardID, userID.(string))
 	if err != nil {
+		if errors.Is(err, ErrPermissionDenied) {
+			response.Forbidden(c, err)
+			return
+		}
 		response.InternalError(c, err)
 		return
 	}

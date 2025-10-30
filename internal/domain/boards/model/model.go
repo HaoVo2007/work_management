@@ -11,6 +11,7 @@ type Boards struct {
 	Name       string             `json:"name" bson:"name"`
 	Background *string            `json:"background" bson:"background"`
 	Color      *string            `json:"color" bson:"color"`
+	Icon       *string            `json:"icon" bson:"icon"`
 	Members    []string           `json:"members" bson:"members"`
 	CreatedBy  string             `json:"created_by" bson:"created_by"`
 	CreatedAt  time.Time          `json:"created_at" bson:"created_at"`
