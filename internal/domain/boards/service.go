@@ -221,6 +221,10 @@ func (s *boardService) UpdateBoard(ctx context.Context, boardID string, req *req
 		board.Background = req.Background
 	}
 
+	if req.Icon != nil {
+		board.Icon = req.Icon
+	}
+
 	board.UpdatedAt = time.Now()
 
 	err = s.BoardRepository.UpdateBoard(ctx, objectID, board)
@@ -256,6 +260,18 @@ func (s *boardService) DeleteBoard(ctx context.Context, boardID, userID string) 
 	err = policy.CanDeleteBoard(board, userID)
 	if err != nil {
 		return err
+	}
+
+	columns, err := s.ColumnRepository.GetColumnsByBoardID(ctx, boardID)
+	if err != nil {
+		return err
+	}
+
+	for _, column := range columns {
+		err = s.ColumnRepository.DeleteColumn(ctx, column.ID)
+		if err != nil {
+			return err
+		}
 	}
 
 	return s.BoardRepository.DeleteBoard(ctx, objectID)
