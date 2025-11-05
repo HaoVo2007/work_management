@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 	"os"
 	"time"
+	"work-management/internal/domain/users/dto/mapper"
 	"work-management/internal/domain/users/dto/request"
 	"work-management/internal/domain/users/dto/response"
 	"work-management/internal/domain/users/model"
@@ -23,6 +24,7 @@ type Service interface {
 	LoginUser(ctx context.Context, req request.LoginUserRequest) (string, error)
 	LogoutUser(ctx context.Context, userID string) error
 	UploadAvatar(ctx context.Context, userID string, avatar *multipart.FileHeader) (string, error)
+	GetUser(ctx context.Context, userID string) (*response.UserResponse, error)
 }
 
 type service struct {
@@ -153,7 +155,7 @@ func (s *service) LogoutUser(ctx context.Context, userID string) error {
 }
 
 func (s *service) UploadAvatar(ctx context.Context, userID string, avatar *multipart.FileHeader) (string, error) {
-	
+
 	if userID == "" {
 		return "", fmt.Errorf("user_id is required")
 	}
@@ -187,10 +189,10 @@ func (s *service) UploadAvatar(ctx context.Context, userID string, avatar *multi
 	if err != nil {
 		return "", err
 	}
-	
+
 	uploadFields := bson.M{
-		"avatar":        key,
-		"updated_at":    time.Now(),
+		"avatar":     key,
+		"updated_at": time.Now(),
 	}
 
 	err = s.repository.UpdateByID(ctx, objectID, uploadFields)
@@ -198,7 +200,7 @@ func (s *service) UploadAvatar(ctx context.Context, userID string, avatar *multi
 		return "", fmt.Errorf("failed to update user avatar: %w", err)
 	}
 
-	avatarUrl, err := aws.GetPresignedURL(ctx, key, time.Hour)
+	avatarUrl, err := aws.GetPresignedURL(ctx, key, 24*time.Hour)
 	if err != nil {
 		return "", err
 	}
@@ -261,4 +263,29 @@ func (s *service) verifyPassword(userPassword string, providedPassword string) (
 
 	return check, msg
 
+}
+
+func (s *service) GetUser(ctx context.Context, userID string) (*response.UserResponse, error) {
+
+	if userID == "" {
+		return nil, fmt.Errorf("user_id is required")
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.repository.FindByID(ctx, objectID)
+	if err != nil {
+		return nil, err
+	}
+
+	if user == nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	userResponse := mapper.ToUserResponse(ctx, user)
+
+	return userResponse, nil
 }

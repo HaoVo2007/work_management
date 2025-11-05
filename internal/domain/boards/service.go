@@ -10,6 +10,7 @@ import (
 	"work-management/internal/domain/boards/model"
 	"work-management/internal/domain/columns"
 	mapperColumn "work-management/internal/domain/columns/dto/mapper"
+	"work-management/internal/domain/tasks"
 	"work-management/internal/domain/users"
 	userDTO "work-management/internal/domain/users/dto/mapper"
 	"work-management/internal/domain/users/dto/response"
@@ -30,16 +31,19 @@ type boardService struct {
 	BoardRepository  BoardRepository
 	ColumnRepository columns.ColumnRepository
 	UserRepository   users.Repository
+	TaskRepository   tasks.TaskRepository
 }
 
 func NewBoardService(
 	boardRepository BoardRepository,
 	columnRepository columns.ColumnRepository,
-	userRepository users.Repository) BoardService {
+	userRepository users.Repository,
+	taskRepository tasks.TaskRepository) BoardService {
 	return &boardService{
 		BoardRepository:  boardRepository,
 		ColumnRepository: columnRepository,
 		UserRepository:   userRepository,
+		TaskRepository:   taskRepository,
 	}
 }
 
@@ -89,7 +93,10 @@ func (s *boardService) GetAllBoards(ctx context.Context) ([]*boardResponse.Board
 		if err != nil {
 			return nil, err
 		}
-		columnResponses := mapperColumn.ToColumnResponses(columnsModel)
+		columnResponses, err := mapperColumn.ToColumnResponses(ctx, columnsModel, s.TaskRepository)
+		if err != nil {
+			return nil, err
+		}
 
 		userIDobj, err := primitive.ObjectIDFromHex(board.CreatedBy)
 		if err != nil {
@@ -105,7 +112,7 @@ func (s *boardService) GetAllBoards(ctx context.Context) ([]*boardResponse.Board
 			return nil, fmt.Errorf("creator not found")
 		}
 
-		userResponse := userDTO.ToUserResponse(user)
+		userResponse := userDTO.ToUserResponse(ctx, user)
 
 		members := make([]*response.UserResponse, 0)
 		for _, m := range board.Members {
@@ -115,7 +122,7 @@ func (s *boardService) GetAllBoards(ctx context.Context) ([]*boardResponse.Board
 			}
 			memberUser, _ := s.UserRepository.FindByID(ctx, objectID)
 			if memberUser != nil {
-				members = append(members, userDTO.ToUserResponse(memberUser))
+				members = append(members, userDTO.ToUserResponse(ctx, memberUser))
 			}
 		}
 
@@ -148,7 +155,11 @@ func (s *boardService) GetBoardById(ctx context.Context, boardID string) (*board
 	if err != nil {
 		return nil, err
 	}
-	columnResponses := mapperColumn.ToColumnResponses(columnsModel)
+
+	columnResponses, err := mapperColumn.ToColumnResponses(ctx, columnsModel, s.TaskRepository)
+	if err != nil {
+		return nil, err
+	}
 
 	userIDobj, err := primitive.ObjectIDFromHex(board.CreatedBy)
 	if err != nil {
@@ -164,7 +175,7 @@ func (s *boardService) GetBoardById(ctx context.Context, boardID string) (*board
 		return nil, fmt.Errorf("creator not found")
 	}
 
-	userResponse := userDTO.ToUserResponse(user)
+	userResponse := userDTO.ToUserResponse(ctx, user)
 
 	members := make([]*response.UserResponse, 0)
 	for _, m := range board.Members {
@@ -174,7 +185,7 @@ func (s *boardService) GetBoardById(ctx context.Context, boardID string) (*board
 		}
 		memberUser, _ := s.UserRepository.FindByID(ctx, objectID)
 		if memberUser != nil {
-			members = append(members, userDTO.ToUserResponse(memberUser))
+			members = append(members, userDTO.ToUserResponse(ctx, memberUser))
 		}
 	}
 
@@ -271,6 +282,16 @@ func (s *boardService) DeleteBoard(ctx context.Context, boardID, userID string) 
 		err = s.ColumnRepository.DeleteColumn(ctx, column.ID)
 		if err != nil {
 			return err
+		}
+		tasks, err := s.TaskRepository.GetTasksByColumnID(ctx, column.ID.Hex())
+		if err != nil {
+			return err
+		}
+		for _, task := range tasks {
+			err = s.TaskRepository.DeleteTask(ctx, task.ID)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

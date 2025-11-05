@@ -32,6 +32,7 @@ func NewHandler(r *gin.Engine, service Service) {
 		auth := api.Group("users")
 		auth.Use(middleware.JWTAuthMiddleware())
 		{
+			auth.GET("/me", handler.GetUser)
 			auth.POST("/logout", handler.LogoutUser)
 			auth.POST("/upload/avatar", handler.UploadAvatar)
 		}
@@ -81,6 +82,23 @@ func (h *Handler) LoginUser(c *gin.Context) {
 
 	response.Created(c, "User logged in successfully", token)
 
+}
+
+func (h *Handler) GetUser(c *gin.Context) {
+	userID, exists := c.Get(constants.UserID)
+	if !exists {
+		response.Unauthorized(c, fmt.Errorf("missing user_id in token"))
+		return
+	}
+
+	user, err := h.service.GetUser(c, userID.(string))
+	if err != nil {
+		response.InternalError(c, err)
+		return
+	}
+
+	response.Success(c, "User fetched successfully", user)
+	
 }
 
 func (h *Handler) LogoutUser(c *gin.Context) {
