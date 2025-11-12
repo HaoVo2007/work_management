@@ -27,3 +27,10 @@ func (p *BoardPolicy) CanDeleteBoard(board *model.Boards, userID string) error {
 	}
 	return nil
 }
+
+func (p *BoardPolicy) CanInviteToBoard(board *model.Boards, userID string) error {
+	if board.CreatedBy != userID {
+		return fmt.Errorf("%w: only the creator can invite to this board", ErrPermissionDenied)
+	}
+	return nil
+}

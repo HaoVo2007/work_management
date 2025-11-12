@@ -8,6 +8,7 @@ type ColumnResponse struct {
 }
 
 type TaskResponse struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
+	ID         string `json:"id"`
+	Title      string `json:"title"`
+	ImageCover *string `json:"image_cover"`
 }

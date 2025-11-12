@@ -25,6 +25,7 @@ type BoardService interface {
 	UpdateBoard(ctx context.Context, boardID string, req *request.UpdateBoardRequest, userID string) (*model.Boards, error)
 	DeleteBoard(ctx context.Context, boardID, userID string) error
 	GetBoardsByUserID(ctx context.Context, userID string) ([]*model.Boards, error)
+	InviteToBoard(ctx context.Context, boardID string, req *request.InviteToBoardRequest, userID string) error
 }
 
 type boardService struct {
@@ -307,4 +308,47 @@ func (s *boardService) GetBoardsByUserID(ctx context.Context, userID string) ([]
 
 	return s.BoardRepository.GetBoardsByUserID(ctx, userID)
 
+}
+
+func (s *boardService) InviteToBoard(ctx context.Context, boardID string, req *request.InviteToBoardRequest, userID string) error {
+	if req.Email == "" {
+		return fmt.Errorf("email is required")
+	}
+
+	user, err := s.UserRepository.FindByEmail(ctx, req.Email)
+	if err != nil {
+		return err
+	}
+
+	if user == nil {
+		return fmt.Errorf("user not found")
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(boardID)
+	if err != nil {
+		return err
+	}
+
+	board, err := s.BoardRepository.GetBoardById(ctx, objectID)
+	if err != nil {
+		return err
+	}
+
+	if board == nil {
+		return fmt.Errorf("board not found")
+	}
+
+	policy := NewBoardPolicy()
+	err = policy.CanInviteToBoard(board, userID)
+	if err != nil {
+		return err
+	}
+
+	board.Members = append(board.Members, user.ID.Hex())
+	err = s.BoardRepository.UpdateBoard(ctx, objectID, board)
+	if err != nil {
+		return err
+	}
+	
+	return nil
 }

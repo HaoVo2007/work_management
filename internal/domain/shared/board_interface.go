@@ -7,6 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type BoardGetter interface {
+type BoardShared interface {
 	GetBoardById(ctx context.Context, boardID primitive.ObjectID) (*model.Boards, error)
 }

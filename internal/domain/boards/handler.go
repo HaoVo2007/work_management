@@ -33,6 +33,7 @@ func NewBoardHandler(r *gin.Engine, boardService BoardService) {
 			public.PUT("/:id", handler.UpdateBoard)
 			public.DELETE("/:id", handler.DeleteBoard)
 			public.GET("/user", handler.GetBoardsByUserID)
+			public.POST("/invite/:id", handler.InviteToBoard)
 		}
 	}
 }
@@ -211,5 +212,43 @@ func (h *BoardHandler) GetBoardsByUserID(c *gin.Context) {
 	}
 
 	response.Success(c, "Boards retrieved successfully", boards)
+
+}
+
+func (h *BoardHandler) InviteToBoard(c *gin.Context) {
+
+	token := c.GetHeader("Authorization")
+	if token == "" {
+		response.Unauthorized(c, fmt.Errorf("missing token"))
+		return
+	}
+
+	ctx := context.WithValue(c, constants.TokenKey, token)
+
+	boardID := c.Param("id")
+	if boardID == "" {
+		response.BadRequest(c, fmt.Errorf("missing board_id"))
+		return
+	}
+
+	var req request.InviteToBoardRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, err)
+		return
+	}
+
+	userID, exists := c.Get(constants.UserID)
+	if !exists {
+		response.Unauthorized(c, fmt.Errorf("missing user_id in token"))
+		return
+	}
+	
+	err := h.BoardService.InviteToBoard(ctx, boardID, &req, userID.(string))
+	if err != nil {
+		response.InternalError(c, err)
+		return
+	}
+
+	response.Success(c, "Board invited successfully", nil)
 
 }

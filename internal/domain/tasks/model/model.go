@@ -10,6 +10,7 @@ type Tasks struct {
 	ID          primitive.ObjectID `json:"_id" bson:"_id"`
 	Name        string             `json:"name" bson:"name"`
 	ColumnID    string             `json:"column_id" bson:"column_id"`
+	CoverPhoto  *string            `json:"cover_photo" bson:"cover_photo"`
 	Description *string            `json:"description" bson:"description"`
 	Assgine     string             `json:"assignee" bson:"assignee"`
 	StartDate   time.Time          `json:"start_date" bson:"start_date"`

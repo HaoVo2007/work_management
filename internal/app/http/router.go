@@ -25,8 +25,8 @@ func RegisterRoutes(r *gin.Engine, db *mongo.Client, cfg *configs.Config) {
 
 	userService := users.NewService(userRepo)
 	boardService := boards.NewBoardService(boardRepo, columnRepo, userRepo, taskRepo)
-	columnService := columns.NewColumnService(columnRepo, boardRepo)
-	taskService := tasks.NewTaskService(taskRepo)
+	columnService := columns.NewColumnService(columnRepo, boardRepo, taskRepo)
+	taskService := tasks.NewTaskService(taskRepo, columnRepo)
 
 	users.NewHandler(r, userService)
 	boards.NewBoardHandler(r, boardService)

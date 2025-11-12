@@ -20,14 +20,19 @@ type ColumnService interface {
 
 type columnService struct {
 	columnRepository ColumnRepository
-	boardRepository  shared.BoardGetter
+	boardRepository  shared.BoardShared
+	taskRepository   shared.TaskShared
 }
 
-func NewColumnService(columnRepository ColumnRepository,
-	boardRepository shared.BoardGetter) ColumnService {
+func NewColumnService(
+	columnRepository ColumnRepository,
+	boardRepository shared.BoardShared,
+	taskRepository shared.TaskShared,
+	) ColumnService {
 	return &columnService{
 		columnRepository: columnRepository,
 		boardRepository:  boardRepository,
+		taskRepository:   taskRepository,
 	}
 }
 
@@ -164,6 +169,18 @@ func (s *columnService) DeleteColumn(ctx context.Context, columnID string, userI
 	err = s.columnRepository.DeleteColumn(ctx, objectID)
 	if err != nil {
 		return err
+	}
+
+	tasks, err := s.taskRepository.GetTasksByColumnID(ctx, columnID)
+	if err != nil {
+		return err
+	}
+	
+	for _, task := range tasks {
+		err = s.taskRepository.DeleteTask(ctx, task.ID)
+		if err != nil {
+			return err
+		}
 	}
 
 	columns, err := s.columnRepository.GetColumnsByBoardID(ctx, column.BoardID)
